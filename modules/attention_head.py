@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from modules.functions import _scaled_dot_product_attention
+from helpers import _scaled_dot_product_attention
 
 
 class AttentionHead(nn.Module):

@@ -1,12 +1,9 @@
 import argparse
 import builtins
-import math
 import os
 import random
-import shutil
 import time
 import warnings
-from functools import partial
 
 import torch
 import torch.nn as nn
@@ -19,9 +16,9 @@ import torch.utils.data
 import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
-import torchvision.models as torchvision_models
 from torch.utils.tensorboard import SummaryWriter
 
+from helpers import accuracy, AverageMeter, ProgressMeter, save_checkpoint
 from modules.classifier import TransformerClassifier
 
 parser = argparse.ArgumentParser(description='MoCo ImageNet Pre-Training')
@@ -38,15 +35,16 @@ parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
 parser.add_argument('--wd', '--weight-decay', default=1e-3, type=float,
                     metavar='W', help='weight decay (default: 1e-6)', dest='weight_decay')
 parser.add_argument('--patch-size', default=8, type=int, help='patch/token spatial dimensions')
-parser.add_argument('--hidden-size', default=256, type=int, help='dimension of the feed forward hidden layers')
+parser.add_argument('--hidden-size', default=256, type=int, help='dimension of the embeddings')
 parser.add_argument('--num-encoder-layers', default=4, type=int,
                     help='...')
-parser.add_argument('--num-attention-heads', default=4, type=int, help='...')
-parser.add_argument('--intermediate-size', default=1024, type=int, help='...')
-parser.add_argument('--hidden-dropout-prob', default=0.5, type=float, help='...')
-parser.add_argument('--stride', default=8, type=int, help='...')
-parser.add_argument('--image-size', default=64, type=int, help='...')
-parser.add_argument('--num-classes', default=10, type=int, help='...')
+parser.add_argument('--num-attention-heads', default=4, type=int, help='number of attention heads')
+parser.add_argument('--intermediate-size', default=1024, type=int,
+                    help='size of the hidden layer of the feed forward module')
+parser.add_argument('--hidden-dropout-prob', default=0.5, type=float, help='keep probability for dropout')
+parser.add_argument('--stride', default=8, type=int, help='controls the jump between patches in the embeddings layer')
+parser.add_argument('--image-size', default=64, type=int, help='the input image size')
+parser.add_argument('--num-classes', default=10, type=int, help='number of classes')
 
 parser.add_argument('--seed', default=None, type=int,
                     help='seed for initializing training. ')
@@ -105,23 +103,6 @@ def main():
     else:
         # Simply call main_worker function
         main_worker(args.gpu, ngpus_per_node, args)
-
-
-def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
-
-        _, pred = output.topk(maxk, 1, True, True)
-        pred = pred.t()
-        correct = pred.eq(target.view(1, -1).expand_as(pred))
-
-        res = []
-        for k in topk:
-            correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
-            res.append(correct_k.mul_(100.0 / batch_size))
-        return res
 
 
 def validate(test_loader, model, summary_writer, epoch):
@@ -332,54 +313,6 @@ def train(train_loader, model, optimizer, criterion, scaler, summary_writer, epo
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
-
-
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
-    torch.save(state, filename)
-    if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
-
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self, name, fmt=':f'):
-        self.name = name
-        self.fmt = fmt
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
-    def __str__(self):
-        fmtstr = '{name} {val' + self.fmt + '} ({avg' + self.fmt + '})'
-        return fmtstr.format(**self.__dict__)
-
-
-class ProgressMeter(object):
-    def __init__(self, num_batches, meters, prefix=""):
-        self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
-        self.meters = meters
-        self.prefix = prefix
-
-    def display(self, batch):
-        entries = [self.prefix + self.batch_fmtstr.format(batch)]
-        entries += [str(meter) for meter in self.meters]
-        print('\t'.join(entries))
-
-    def _get_batch_fmtstr(self, num_batches):
-        num_digits = len(str(num_batches // 1))
-        fmt = '{:' + str(num_digits) + 'd}'
-        return '[' + fmt + '/' + fmt.format(num_batches) + ']'
 
 
 if __name__ == '__main__':
