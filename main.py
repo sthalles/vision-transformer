@@ -21,11 +21,11 @@ from torch.utils.tensorboard import SummaryWriter
 from helpers import accuracy, AverageMeter, ProgressMeter, save_checkpoint
 from modules.classifier import TransformerClassifier
 
-parser = argparse.ArgumentParser(description='MoCo ImageNet Pre-Training')
+parser = argparse.ArgumentParser(description='Vision Transformer')
 
 parser.add_argument('data', metavar='DIR', help='path to dataset')
 parser.add_argument('-j', '--workers', default=8, type=int, metavar='N',
-                    help='number of data loading workers (default: 32)')
+                    help='number of data loading workers.')
 parser.add_argument('--epochs', default=100, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('-b', '--batch-size', default=256, type=int,
@@ -33,7 +33,7 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
 parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                     metavar='LR', help='initial (base) learning rate', dest='lr')
 parser.add_argument('--wd', '--weight-decay', default=1e-3, type=float,
-                    metavar='W', help='weight decay (default: 1e-6)', dest='weight_decay')
+                    metavar='W', help='weight decay', dest='weight_decay')
 parser.add_argument('--patch-size', default=8, type=int, help='patch/token spatial dimensions')
 parser.add_argument('--hidden-size', default=256, type=int, help='dimension of the embeddings')
 parser.add_argument('--num-encoder-layers', default=4, type=int,
